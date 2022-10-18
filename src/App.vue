@@ -72,10 +72,12 @@
 </template>
 
 <script setup lang="ts">
-import { evaluate } from "mathjs";
-import { ref } from "vue";
 
-const result = ref<{ x: number; y: number }[]>([]);
+import { ref } from "vue";
+import { BigNumber } from "mathjs";
+import mathjs from "./math";
+
+const result = ref<{ x: BigNumber; y: BigNumber }[]>([]);
 
 const title = ref<"Euler" | "Euler Mejorado">("Euler");
 const func = ref<string>("x + y ^ 2");
@@ -84,36 +86,32 @@ const initialX = ref<number>(0);
 const finalX = ref<number>(1);
 const initialY = ref<number>(0);
 
-function evalFunc(x: number, y: number) {
+function evalFunc(x: BigNumber, y: BigNumber) {
   const scope = {
     x,
     y,
   };
-  return evaluate(func.value, scope);
+  return mathjs.evaluate(func.value, scope);
 }
 
-function nextStep(x: number, h: number): number {
-  const scope = {
-    x,
-    h,
-  };
-  return evaluate("x + h", scope);
+function nextStep(x: BigNumber, h: BigNumber): BigNumber {
+  return mathjs.add(x, h);
 }
 
-function euler(x: number, y: number, h: number): number {
+function euler(x: BigNumber, y: BigNumber, h: BigNumber): BigNumber {
   const f = evalFunc(x, y);
   const scope = {
     y,
     h,
     f,
   };
-  return evaluate("y + h * f", scope);
+  return mathjs.evaluate("y + h * f", scope);
 }
 
-function improvedEuler(x: number, y: number, h: number): number {
-  const f: number = evalFunc(x, y);
-  const nextX: number = nextStep(x, h);
-  const nextY: number = euler(x, y, h);
+function improvedEuler(x: BigNumber, y: BigNumber, h: BigNumber): BigNumber {
+  const f: BigNumber = evalFunc(x, y);
+  const nextX: BigNumber = nextStep(x, h);
+  const nextY: BigNumber = euler(x, y, h);
   const g = evalFunc(nextX, nextY);
   const scope = {
     y,
@@ -121,20 +119,20 @@ function improvedEuler(x: number, y: number, h: number): number {
     f,
     g,
   };
-  return evaluate("y + ((h/2) * (f + g))", scope);
+  return mathjs.evaluate("y + ((h/2) * (f + g))", scope);
 }
 
-function onEval(f: (x: number, y: number, h: number) => number): void {
+function onEval(eulerMethod: (x: BigNumber, y: BigNumber, h: BigNumber) => BigNumber): void {
   result.value = [];
-  const h = step.value;
-  let x = initialX.value;
-  const limit = finalX.value;
-  let y = initialY.value;
+  const h = mathjs.bignumber(step.value);
+  let x = mathjs.bignumber(initialX.value);
+  const limit = mathjs.bignumber(finalX.value);
+  let y = mathjs.bignumber(initialY.value);
 
   let arr = [];
   while (x <= limit) {
     arr.push({ x, y });
-    y = f(x, y, h);
+    y = eulerMethod(x, y, h);
     x = nextStep(x, h);
   }
   console.table(arr);
